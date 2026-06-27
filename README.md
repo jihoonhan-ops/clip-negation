@@ -1,6 +1,6 @@
 # Does CLIP Understand "No"? — Reproducing CLIP's Negation Blindness
 
-CLIP 같은 vision-language model이 **부정(negation)**을 제대로 처리하지 못하는 현상을
+CLIP 같은 vision-language model이 부정(negation)을 제대로 처리하지 못하는 현상을
 직접 재현하고, 여러 모델·데이터셋에서 일관되게 나타남을 정량적으로 확인한 미니 연구 프로젝트입니다.
 
 > **동기**: 고려대 Vision & AI Lab의 ICCV 2025 논문
