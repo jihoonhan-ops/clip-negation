@@ -1,114 +1,118 @@
 # Does CLIP Understand "No"? — Reproducing CLIP's Negation Blindness
 
-CLIP 같은 vision-language model이 부정(negation)을 제대로 처리하지 못하는 현상을
-직접 재현하고, 여러 모델·데이터셋에서 일관되게 나타남을 정량적으로 확인한 미니 연구 프로젝트입니다.
+A mini research project that reproduces and quantifies how vision-language models like
+**CLIP fail to handle negation**, and shows that this weakness persists consistently
+across different models and datasets.
 
-> **동기**: 고려대 Vision & AI Lab의 ICCV 2025 논문
-> *"Know 'No' Better: A Data-Driven Approach for Enhancing Negation Awareness in CLIP"* (Park et al.)
-> 를 읽고, CLIP의 negation 약점이 실제로 얼마나 심한지, 그리고 모델/데이터를 바꿔도
-> 사라지지 않는지 직접 손으로 확인해보고 싶었습니다.
+> **Motivation**: After reading the ICCV 2025 paper from Korea University's Vision & AI Lab,
+> *"Know 'No' Better: A Data-Driven Approach for Enhancing Negation Awareness in CLIP"* (Park et al.),
+> I wanted to verify by hand how severe CLIP's negation weakness actually is, and whether it
+> survives changes in model size and pretraining data.
 
 ---
 
 ## TL;DR
 
-- CLIP은 `"a photo of a cat"`과 `"a photo of no cat"`을 거의 구분하지 못합니다.
-- 정답 클래스를 **부정**했는데도 여전히 그 클래스를 1등으로 뽑는 비율(**negation-ignored rate**)이
-  71~93%에 달했습니다.
-- 모델을 키우거나(ViT-B/32 → ViT-L/14) 더 큰 데이터로 학습해도(OpenAI → LAION-2B)
-  개선되지 않았습니다 → **문제의 원인이 모델 용량이 아니라 학습 데이터에 있다**는
-  논문의 가설을 뒷받침합니다.
+- CLIP can barely distinguish `"a photo of a cat"` from `"a photo of no cat"`.
+- Even when the correct class is **negated**, CLIP still ranks it #1 most of the time
+  (**negation-ignored rate** of 71–93%).
+- Scaling the model (ViT-B/32 → ViT-L/14) or using more pretraining data
+  (OpenAI → LAION-2B) does **not** fix it → supporting the paper's hypothesis that
+  the root cause lies in the **training data, not model capacity**.
 
 ---
 
-## 1. 핵심 실험: 단일 모델 재현 (CIFAR-10)
+## 1. Core Experiment: Single-Model Reproduction (CIFAR-10)
 
-`clip_negation.ipynb` — CLIP ViT-B/32(OpenAI)로 CIFAR-10에서 세 가지를 측정합니다.
+`clip_negation.ipynb` — Using CLIP ViT-B/32 (OpenAI) on CIFAR-10, I measure three things:
 
-1. **표준 zero-shot baseline**: `"a photo of a {class}"`로 일반 분류 정확도
-2. **Negation-ignored rate**: 분류 프롬프트를 `"a photo of no {class}"`로 바꿔도
-   정답 클래스가 1등으로 뽑히는 비율 (높을수록 = `no`를 무시했다는 증거)
-3. **유사도 분포**: 같은 이미지에서 긍정/부정 프롬프트의 코사인 유사도 비교
+1. **Standard zero-shot baseline**: classification accuracy with `"a photo of a {class}"`
+2. **Negation-ignored rate**: how often the true class is still ranked #1 even when the
+   prompt is negated to `"a photo of no {class}"` (higher = the model ignored `no`)
+3. **Similarity distribution**: cosine similarity of positive vs. negated prompts on the
+   same image
 
-### 결과
+### Results
 
-| 지표 | 값 |
-|------|-----|
-| 긍정 프롬프트 정확도 | **86.4%** |
-| 부정 프롬프트 평균 무시율 | **88.5%** |
-| 긍정-부정 유사도 평균 차이 | **0.0045** |
+| Metric | Value |
+|--------|-------|
+| Positive prompt accuracy | **86.4%** |
+| Avg. negation-ignored rate | **88.5%** |
+| Mean positive–negative similarity gap | **0.0045** |
 
-부정 무시율(88.5%)이 긍정 정확도(86.4%)보다도 **높습니다**. 즉 CLIP은 `no cat`을
-사실상 `cat`으로 읽었습니다. 유사도 차이도 0에 수렴 → 부정어가 임베딩에 거의 영향을 주지 못합니다.
+The negation-ignored rate (88.5%) is even **higher** than the positive accuracy (86.4%) —
+CLIP essentially reads `no cat` as `cat`. The similarity gap is near zero, meaning the
+negation word has almost no effect on the embedding.
 
 ![negation ignored bar](result_bar.png)
 ![similarity distribution](result_simdist.png)
 
 ---
 
-## 2. 일반성 검증: 모델 × 데이터셋 그리드
+## 2. Generalization: Model × Dataset Grid
 
-`clip_negation_level1.ipynb` — "특정 설정의 우연"이 아님을 보이기 위해
-**모델 3종 × 데이터셋 2종**에서 negation-ignored rate를 측정했습니다.
+`clip_negation_level1.ipynb` — To show this is not a quirk of one setup, I measure the
+negation-ignored rate across **3 models × 2 datasets**.
 
-- 모델: ViT-B/32 (OpenAI), ViT-L/14 (OpenAI), ViT-B/32 (LAION-2B)
-- 데이터: CIFAR-10, Oxford-IIIT Pets
+- Models: ViT-B/32 (OpenAI), ViT-L/14 (OpenAI), ViT-B/32 (LAION-2B)
+- Datasets: CIFAR-10, Oxford-IIIT Pets
 
-### Negation-ignored rate (%) — 높을수록 나쁨
+### Negation-ignored rate (%) — higher is worse
 
-| 모델 \ 데이터 | CIFAR-10 | Oxford Pets |
+| Model \ Dataset | CIFAR-10 | Oxford Pets |
 |---|---|---|
 | ViT-B/32 (OpenAI) | 87.6 | 71.0 |
 | ViT-L/14 (OpenAI) | 87.9 | 82.9 |
 | ViT-B/32 (LAION-2B) | 93.2 | 83.9 |
 
-### Baseline zero-shot accuracy (%) — 참고용
+### Baseline zero-shot accuracy (%) — for reference
 
-| 모델 \ 데이터 | CIFAR-10 | Oxford Pets |
+| Model \ Dataset | CIFAR-10 | Oxford Pets |
 |---|---|---|
 | ViT-B/32 (OpenAI) | 85.7 | 78.2 |
 | ViT-L/14 (OpenAI) | 92.3 | 89.7 |
 | ViT-B/32 (LAION-2B) | 94.1 | 88.3 |
 
-![negation heatmap](result_heatmap_negation.png)
-![negation heatmap](result_heatmap_baseline.png)
-![paired bars](result_bars.png)
+![negation heatmap](level1_heatmap_negation.png)
+![paired bars](level1_bars.png)
 
-### 통찰
+### Findings
 
-- **6개 조합 전부**에서 무시율이 무작위 기댓값(CIFAR 10%, Pets 약 2.7%)을 압도 →
-  negation 무시는 CLIP 계열의 **공통 현상**입니다.
-- 모델을 키워도(B/32 → L/14) 개선되지 않았습니다 (Pets는 오히려 71.0 → 82.9로 악화).
-- 더 큰 데이터로 학습한 LAION-2B 모델이 오히려 무시율이 더 높았습니다 (CIFAR 93.2).
-- 즉 문제는 **모델 용량이나 데이터 양이 아니라, 학습 데이터에 부정 표현이 부족하다는 점**에
-  있다는 논문의 주장과 일치합니다.
+- **All 6 combinations** show negation-ignored rates far above chance
+  (10% for CIFAR-10, ~2.7% for Pets) → ignoring negation is a **systematic behavior**
+  of CLIP-family models.
+- Scaling up the model (B/32 → L/14) does not help (Pets even worsens, 71.0 → 82.9).
+- The model trained on more data (LAION-2B) is actually **worse** (93.2 on CIFAR-10).
+- This matches the paper's claim: the issue is **not model capacity or data volume**,
+  but the **lack of negation-containing examples in the training data**.
 
 ---
 
-## 실행 방법
+## How to Run
 
-Google Colab **GPU 런타임**에서 노트북을 열고 위에서부터 실행하면 됩니다.
-필요한 패키지는 첫 셀에서 설치합니다.
+Open the notebooks in **Google Colab with a GPU runtime** and run the cells top to bottom.
+The first cell installs the required package:
 
 ```bash
 pip install open_clip_torch
 ```
 
-처음 실행 시 데이터셋과 CLIP 가중치를 자동으로 내려받습니다.
+Datasets and CLIP weights are downloaded automatically on first run.
 
 ---
 
-## 다음 단계 (계획)
+## Next Steps (Planned)
 
-- **순수 무시율 지표**: baseline에서 맞춘 이미지만 대상으로 negation 인식 능력을 더 공정하게 측정
-- **복합 부정**: `"A and no B"` 형태(멀티객체, COCO 기반)로 난이도 확장
-- **Training-free 완화**: fine-tuning 없이 점수 보정만으로 어디까지 개선되는지 탐색
-  (논문은 데이터 생성 + fine-tuning으로 해결)
+- **Cleaner metric**: measure negation awareness only on images the baseline got correct,
+  for a fairer estimate.
+- **Compositional negation**: extend to `"A and no B"` prompts (multi-object, COCO-based).
+- **Training-free mitigation**: explore how far simple score correction can go without
+  fine-tuning (the paper solves it via data generation + fine-tuning).
 
 ---
 
-## 참고
+## References
 
-- Park et al. *Know "No" Better: A Data-Driven Approach for Enhancing Negation
-  Awareness in CLIP.* ICCV 2025. (Vision & AI Lab, Korea University)
+- Park et al. *Know "No" Better: A Data-Driven Approach for Enhancing Negation Awareness
+  in CLIP.* ICCV 2025. (Vision & AI Lab, Korea University)
 - Radford et al. *Learning Transferable Visual Models From Natural Language Supervision* (CLIP). 2021.
