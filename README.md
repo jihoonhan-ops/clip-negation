@@ -73,8 +73,9 @@ negation-ignored rate across **3 models × 2 datasets**.
 | ViT-L/14 (OpenAI) | 92.3 | 89.7 |
 | ViT-B/32 (LAION-2B) | 94.1 | 88.3 |
 
-![negation heatmap](level1_heatmap_negation.png)
-![paired bars](level1_bars.png)
+![negation heatmap](result_heatmap_negation.png)
+![negation heatmap](result_heatmap_baseline.png)
+![paired bars](result_bars.png)
 
 ### Findings
 
