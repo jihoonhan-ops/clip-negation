@@ -70,9 +70,9 @@ CLIP 같은 vision-language model이 **부정(negation)**을 제대로 처리하
 | ViT-L/14 (OpenAI) | 92.3 | 89.7 |
 | ViT-B/32 (LAION-2B) | 94.1 | 88.3 |
 
-![negation heatmap](level1_heatmap_negation.png)
-![negation heatmap](level1_heatmap_baseline.png)
-![paired bars](level1_bars.png)
+![negation heatmap](result_heatmap_negation.png)
+![negation heatmap](result_heatmap_baseline.png)
+![paired bars](result_bars.png)
 
 ### 통찰
 
